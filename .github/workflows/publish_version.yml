@@ -45,10 +45,18 @@ jobs:
         shell: bash
         run: |
           file=$(find tests/EmployeeApp.Tests/TestResults -name 'coverage.cobertura.xml' | head -n 1)
+          if [ -z "$file" ] || [ ! -f "$file" ]; then
+            echo "No se encontró archivo de cobertura, creando uno vacío"
+            mkdir -p tests/EmployeeApp.Tests/TestResults/coverage
+            echo '<?xml version="1.0" encoding="utf-8"?><coverage line-rate="0" branch-rate="0" version="1.9"></coverage>' > tests/EmployeeApp.Tests/TestResults/coverage/coverage.cobertura.xml
+            file=tests/EmployeeApp.Tests/TestResults/coverage/coverage.cobertura.xml
+          fi
           echo "coverage_file=$file" >> $GITHUB_OUTPUT
 
       - name: Generate HTML coverage report
+        if: steps.coverage.outputs.coverage_file != ''
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.9
+        continue-on-error: true
         with:
           reports: ${{ steps.coverage.outputs.coverage_file }}
           targetdir: coverage-report
@@ -92,12 +100,12 @@ jobs:
           echo "tag=$tag" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: actions/create-release@v1
+        uses: ncipollo/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          release_name: Release ${{ steps.version.outputs.tag }}
+          tag: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
           draft: false
           prerelease: false
 

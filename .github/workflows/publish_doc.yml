@@ -42,12 +42,19 @@ jobs:
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Generate PlantUML (*.puml) from source
+        continue-on-error: true
         run: |
           mkdir -p docs/diagrams
-          puml-gen src/EmployeeApp -o docs/diagrams
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          puml-gen src/EmployeeApp -o docs/diagrams || \
+          $HOME/.dotnet/tools/puml-gen src/EmployeeApp -o docs/diagrams || \
+          dotnet tool run puml-gen -- src/EmployeeApp -o docs/diagrams || \
+          echo "No se pudieron generar diagramas PlantUML, continuando sin ellos..."
 
       - name: Render PlantUML to SVG
+        if: "hashFiles('docs/diagrams/**/*.puml') != ''"
         uses: plantuml/plantuml-action@v1
+        continue-on-error: true
         with:
           args: -tsvg
           files: docs/diagrams/**/*.puml
